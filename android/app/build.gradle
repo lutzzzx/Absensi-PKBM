@@ -1,0 +1,59 @@
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    id "dev.flutter.flutter-gradle-plugin"
+}
+
+android {
+    namespace = "com.example.absensi_pkbm"
+    compileSdk = 34 // Versi minimum untuk Android 13+
+
+    defaultConfig {
+        applicationId = "com.example.absensi_pkbm"
+        minSdkVersion 23
+        targetSdk = 33 // Target SDK untuk Android 13
+        versionCode 1
+        versionName "1.0.0"
+        multiDexEnabled true // Aktifkan multiDex
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+        coreLibraryDesugaringEnabled true // Aktifkan desugaring
+    }
+
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+
+    buildTypes {
+        release {
+            signingConfig signingConfigs.debug
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    signingConfigs {
+        release {
+            storeFile file("upload-keystore.jks")
+            storePassword "luthfi"
+            keyAlias "upload"
+            keyPassword "luthfi"
+        }
+    }
+}
+
+dependencies {
+    implementation 'androidx.window:window:1.0.0'
+    implementation 'androidx.window:window-java:1.0.0'
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:1.2.2'
+}
+
+flutter {
+    source = "../.."
+}
+
+apply plugin: 'com.google.gms.google-services'
