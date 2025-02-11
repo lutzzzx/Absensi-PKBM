@@ -64,7 +64,7 @@ class ProfileScreen extends StatelessWidget {
                   }
 
                   try {
-                    final user = FirebaseAuth.instance.currentUser ;
+                    final user = FirebaseAuth.instance.currentUser;
 
                     // Send verification email to the new address
                     await user!.verifyBeforeUpdateEmail(newEmail);
@@ -88,6 +88,118 @@ class ProfileScreen extends StatelessWidget {
                   } on FirebaseAuthException catch (e) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Gagal memperbarui email: ${e.message}')),
+                    );
+                  }
+                },
+                child: Text('Simpan'),
+              ),
+            ],
+          );
+        },
+      );
+    }
+
+    // Fungsi untuk mengubah nama (fullname)
+    Future<void> _updateFullName(BuildContext context) async {
+      final fullNameController = TextEditingController();
+
+      return showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: Text('Ubah Nama'),
+            content: TextField(
+              controller: fullNameController,
+              decoration: InputDecoration(labelText: 'Nama Lengkap'),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text('Batal'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  final newFullName = fullNameController.text.trim();
+                  if (newFullName.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Nama tidak boleh kosong')),
+                    );
+                    return;
+                  }
+
+                  try {
+                    await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+                      'fullName': newFullName,
+                    });
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Nama berhasil diperbarui')),
+                    );
+
+                    Navigator.pop(context);
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Gagal memperbarui nama: $e')),
+                    );
+                  }
+                },
+                child: Text('Simpan'),
+              ),
+            ],
+          );
+        },
+      );
+    }
+
+    // Fungsi untuk mengubah package
+    Future<void> _updatePackage(BuildContext context) async {
+      String? selectedPackage;
+
+      return showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: Text('Ubah Paket'),
+            content: DropdownButtonFormField<String>(
+              value: selectedPackage,
+              items: ['Paket A', 'Paket B', 'Paket C', 'Tutor'].map((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
+              onChanged: (String? newValue) {
+                selectedPackage = newValue;
+              },
+              decoration: InputDecoration(labelText: 'Pilih Paket'),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text('Batal'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  if (selectedPackage == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Silakan pilih paket')),
+                    );
+                    return;
+                  }
+
+                  try {
+                    await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+                      'package': selectedPackage,
+                    });
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Paket berhasil diperbarui')),
+                    );
+
+                    Navigator.pop(context);
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Gagal memperbarui paket: $e')),
                     );
                   }
                 },
@@ -189,16 +301,30 @@ class ProfileScreen extends StatelessWidget {
                             Text('Nama: $fullName', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                             SizedBox(height: 10),
                             Text('Email: ${user.email}', style: TextStyle(fontSize: 16, color: Colors.grey.shade700)),
+                            SizedBox(height: 10),
+                            Text('Paket: ${userData['package']}', style: TextStyle(fontSize: 16, color: Colors.grey.shade700)),
                             SizedBox(height: 20),
                             CustomButton(
-                              text: 'Reset Kata Sandi',
-                              onPressed: () => _resetPassword(context),
+                              text: 'Ubah Email',
+                              onPressed: () => _updateEmail(context),
                               isFullWidth: true,
                             ),
                             SizedBox(height: 16),
                             CustomButton(
-                              text: 'Ubah Email',
-                              onPressed: () => _updateEmail(context),
+                              text: 'Ubah Nama',
+                              onPressed: () => _updateFullName(context),
+                              isFullWidth: true,
+                            ),
+                            SizedBox(height: 16),
+                            CustomButton(
+                              text: 'Ubah Paket',
+                              onPressed: () => _updatePackage(context),
+                              isFullWidth: true,
+                            ),
+                            SizedBox(height: 16),
+                            CustomButton(
+                              text: 'Reset Kata Sandi',
+                              onPressed: () => _resetPassword(context),
                               isFullWidth: true,
                             ),
                             SizedBox(height: 16),
@@ -237,6 +363,7 @@ class ProfileScreen extends StatelessWidget {
                         ],
                       ),
                     ),
+                    SizedBox(height: 24),
                   ],
                 ),
               ),

@@ -2,6 +2,7 @@ import 'package:absensi_pkbm/screens/admin/edit_session_page.dart';
 import 'package:absensi_pkbm/screens/admin/add_session_page.dart';
 import 'package:absensi_pkbm/screens/admin/session_detail_page.dart';
 import 'package:absensi_pkbm/screens/widgets/confirmation_dialog.dart';
+import 'package:absensi_pkbm/screens/widgets/custom_fab.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -14,6 +15,7 @@ class SessionListPage extends StatefulWidget {
 class _SessionListPageState extends State<SessionListPage> {
   String _searchQuery = '';
   DateTime? _selectedDate;
+  String _selectedPackage = 'All'; // Default to show all sessions
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -97,6 +99,7 @@ class _SessionListPageState extends State<SessionListPage> {
                     decoration: InputDecoration(
                       hintText: 'Cari sesi...',
                       prefixIcon: Icon(Icons.search),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 0),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -142,9 +145,106 @@ class _SessionListPageState extends State<SessionListPage> {
               ],
             ),
           ),
+          // Package Filter Buttons
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      _selectedPackage = 'All';
+                    });
+                  },
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: Size(50, 36), // Ukuran lebih kecil
+                    backgroundColor: _selectedPackage == 'All' ? Colors.blue : Colors.grey[300],
+                    elevation: 0, // Menghapus shadow
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12), // Membuat rounded lebih besar
+                    ),
+                  ),
+                  child: Text('Semua', style: TextStyle(color: _selectedPackage == 'All' ? Colors.white : Colors.black)),
+                ),
+                SizedBox(width: 5),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      _selectedPackage = 'Paket A';
+                    });
+                  },
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: Size(30, 36),
+                    backgroundColor: _selectedPackage == 'Paket A' ? Colors.blue : Colors.grey[300],
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text('A', style: TextStyle(color: _selectedPackage == 'Paket A' ? Colors.white : Colors.black)),
+                ),
+                SizedBox(width: 5),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      _selectedPackage = 'Paket B';
+                    });
+                  },
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: Size(30, 36),
+                    backgroundColor: _selectedPackage == 'Paket B' ? Colors.blue : Colors.grey[300],
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text('B', style: TextStyle(color: _selectedPackage == 'Paket B' ? Colors.white : Colors.black)),
+                ),
+                SizedBox(width: 5),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      _selectedPackage = 'Paket C';
+                    });
+                  },
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: Size(30, 36),
+                    backgroundColor: _selectedPackage == 'Paket C' ? Colors.blue : Colors.grey[300],
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text('C', style: TextStyle(color: _selectedPackage == 'Paket C' ? Colors.white : Colors.black)),
+                ),
+                SizedBox(width: 5),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      _selectedPackage = 'Tutor';
+                    });
+                  },
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: Size(30, 36),
+                    backgroundColor: _selectedPackage == 'Tutor' ? Colors.blue : Colors.grey[300],
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text('Tutor', style: TextStyle(color: _selectedPackage == 'Tutor' ? Colors.white : Colors.black)),
+                ),
+              ],
+
+            ),
+          ),
           Expanded(
             child: StreamBuilder(
-              stream: FirebaseFirestore.instance.collection('sessions').snapshots(),
+              stream: FirebaseFirestore.instance
+                  .collection('sessions')
+                  .orderBy('createdAt', descending: true)
+                  .snapshots(),
               builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
                 if (!snapshot.hasData) {
                   return Center(child: CircularProgressIndicator());
@@ -152,21 +252,23 @@ class _SessionListPageState extends State<SessionListPage> {
 
                 var sessions = snapshot.data!.docs;
 
-                // Filter sessions based on search query and selected date
+                // Filter sessions based on search query, selected date, and selected package
                 var filteredSessions = sessions.where((session) {
                   String title = session['title'].toString().toLowerCase();
                   DateTime sessionDate = DateTime.parse(session['date']);
+                  String package = session['package'] ?? '';
 
                   bool matchesSearch = title.contains(_searchQuery);
                   bool matchesDate = _selectedDate == null ||
                       DateFormat('yyyy-MM-dd').format(sessionDate) ==
                           DateFormat('yyyy-MM-dd').format(_selectedDate!);
+                  bool matchesPackage = _selectedPackage == 'All' || package == _selectedPackage;
 
-                  return matchesSearch && matchesDate;
+                  return matchesSearch && matchesDate && matchesPackage;
                 }).toList();
 
                 return Padding(
-                  padding: const EdgeInsets.all(12.0),
+                  padding: const EdgeInsets.symmetric(vertical: 5.0, horizontal: 12.0),
                   child: ListView(
                     children: filteredSessions.map((doc) {
                       bool isActive = _isSessionActive(doc);
@@ -310,6 +412,25 @@ class _SessionListPageState extends State<SessionListPage> {
                                         ],
                                       ),
                                     ),
+                                    SizedBox(width: 8),
+                                    Container(
+                                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.purple[50],
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.class_, color: Colors.purple, size: 16),
+                                          SizedBox(width: 4),
+                                          Text(
+                                            '${doc['package']}',
+                                            style: TextStyle(color: Colors.purple, fontWeight: FontWeight.bold),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ],
@@ -325,16 +446,15 @@ class _SessionListPageState extends State<SessionListPage> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: CustomFAB(
         onPressed: () {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => AddSessionPage()),
           );
         },
-        backgroundColor: Colors.blueAccent,
-        child: Icon(Icons.add, color: Colors.white),
-        tooltip: 'Tambah Sesi',
+        icon: Icons.add,
+        text: 'Tambah Sesi',
       ),
     );
   }

@@ -16,13 +16,18 @@ class _AddSessionPageState extends State<AddSessionPage> {
   final TextEditingController _dateController = TextEditingController();
   final TextEditingController _startTimeController = TextEditingController();
   final TextEditingController _endTimeController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController(); // Controller untuk password
+  final TextEditingController _passwordController = TextEditingController();
+
   DateTime? _selectedDate;
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
   bool _isTimeRestricted = false;
   bool _isActive = true;
-  bool _isPasswordEnabled = false; // Status apakah password diaktifkan
+  bool _isPasswordEnabled = false;
+
+  // Variabel untuk menyimpan pilihan paket
+  String? _selectedPackage;
+  final List<String> _packages = ['Paket A', 'Paket B', 'Paket C', 'Tutor'];
 
   Future<void> _pickDate() async {
     DateTime? picked = await showDatePicker(
@@ -62,7 +67,7 @@ class _AddSessionPageState extends State<AddSessionPage> {
   }
 
   Future<void> _saveSession() async {
-    if (_titleController.text.isEmpty || _selectedDate == null) {
+    if (_titleController.text.isEmpty || _selectedDate == null || _selectedPackage == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Lengkapi semua isian')),
       );
@@ -83,9 +88,11 @@ class _AddSessionPageState extends State<AddSessionPage> {
       'endTime': _isTimeRestricted ? _formatTime(_endTime!) : null,
       'isTimeRestricted': _isTimeRestricted,
       'isActive': _isActive,
-      'isPasswordEnabled': _isPasswordEnabled, // Simpan status password
-      'password': _isPasswordEnabled ? _passwordController.text : null, // Simpan password jika diaktifkan
+      'isPasswordEnabled': _isPasswordEnabled,
+      'password': _isPasswordEnabled ? _passwordController.text : null,
       'attendees': [],
+      'package': _selectedPackage, // Simpan pilihan paket
+      'createdAt': FieldValue.serverTimestamp(), // Tambahkan waktu dibuatnya sesi
     });
 
     Navigator.pop(context);
@@ -107,7 +114,7 @@ class _AddSessionPageState extends State<AddSessionPage> {
               BuildInputCard(
                 child: Column(
                   children: [
-                    CustomTextFormField(
+                    CustomTextFormField (
                       icon: Icon(Icons.title, color: Colors.blue),
                       controller: _titleController,
                       labelText: 'Judul Kegiatan',
@@ -119,6 +126,33 @@ class _AddSessionPageState extends State<AddSessionPage> {
                       labelText: 'Tanggal',
                       readOnly: true,
                       onTap: _pickDate,
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 16),
+              // Dropdown untuk memilih paket PKBM
+              BuildInputCard(
+                child: Column(
+                  children: [
+                    DropdownButtonFormField<String>(
+                      decoration: InputDecoration(
+                        labelText: 'Pilih Paket PKBM',
+                        icon: Icon(Icons.list, color: Colors.blue),
+                      ),
+                      value: _selectedPackage,
+                      items: _packages.map((String package) {
+                        return DropdownMenuItem<String>(
+                          value: package,
+                          child: Text(package),
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        setState(() {
+                          _selectedPackage = newValue;
+                        });
+                      },
+                      validator: (value) => value == null ? 'Pilih paket' : null,
                     ),
                   ],
                 ),
@@ -192,7 +226,7 @@ class _AddSessionPageState extends State<AddSessionPage> {
                         icon: Icon(Icons.password, color: Colors.blue),
                         controller: _passwordController,
                         labelText: 'Password',
-                        obscureText: false,
+                        obscureText: true,
                         keyboardType: TextInputType.text,
                       ),
                     ],

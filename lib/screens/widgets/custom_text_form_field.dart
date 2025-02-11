@@ -12,7 +12,7 @@ class CustomTextFormField extends StatefulWidget {
   final bool isEdit;
   final List<String>? dropdownItems;
   final String? initialDropdownValue;
-  final bool obscureText; // Tambahkan parameter obscureText
+  final bool obscureText;
 
   const CustomTextFormField({
     super.key,
@@ -27,7 +27,7 @@ class CustomTextFormField extends StatefulWidget {
     this.isEdit = false,
     this.dropdownItems,
     this.initialDropdownValue,
-    this.obscureText = false, // Default value untuk obscureText
+    this.obscureText = false,
   });
 
   @override
@@ -49,7 +49,6 @@ class _CustomTextFormFieldState extends State<CustomTextFormField> {
       });
     });
 
-    // Set nilai awal dropdown jika disediakan
     _selectedValue = widget.initialDropdownValue;
     if (widget.initialDropdownValue != null) {
       widget.controller.text = widget.initialDropdownValue!;
@@ -85,34 +84,34 @@ class _CustomTextFormFieldState extends State<CustomTextFormField> {
           }
         },
         decoration: InputDecoration(
+          contentPadding: const EdgeInsets.symmetric(vertical: 14.0, horizontal: 12.0), // Atur padding di sini
           prefixIcon: Icon(
             widget.icon.icon,
             color: widget.isEdit ? const Color(0xFF0077B6) : _iconColor,
           ),
           labelText: widget.labelText,
-          labelStyle: TextStyle(color: Colors.grey), // Warna default label
+          labelStyle: TextStyle(color: Colors.grey),
           floatingLabelStyle: TextStyle(
             color: widget.isEdit ? const Color(0xFF0077B6) : Colors.grey,
-          ), // Warna label saat floating
+          ),
           filled: true,
           fillColor: widget.isEdit ? const Color(0xFFCAF0F8) : Colors.white,
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16.0),
+            borderRadius: BorderRadius.circular(14.0),
             borderSide: BorderSide(
                 color: widget.isEdit ? const Color(0xFFCAF0F8) : Colors.grey),
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16.0),
+            borderRadius: BorderRadius.circular(14.0),
             borderSide: BorderSide(
                 color: widget.isEdit ? const Color(0xFFCAF0F8) : Colors.grey),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16.0),
+            borderRadius: BorderRadius.circular(14.0),
             borderSide: const BorderSide(color: Color(0xFF0077B6)),
           ),
         ),
-        dropdownColor: Colors.white, // Latar belakang dropdown
-
+        dropdownColor: Colors.white,
         validator: widget.validator,
       )
           : TextFormField(
@@ -121,31 +120,32 @@ class _CustomTextFormFieldState extends State<CustomTextFormField> {
         readOnly: widget.readOnly,
         onTap: widget.onTap,
         onChanged: widget.onChanged,
-        obscureText: widget.obscureText, // Gunakan parameter obscureText
+        obscureText: widget.obscureText,
         decoration: InputDecoration(
+          contentPadding: const EdgeInsets.symmetric(vertical: 14.0, horizontal: 12.0), // Atur padding di sini
           prefixIcon: Icon(
             widget.icon.icon,
             color: widget.isEdit ? const Color(0xFF03045E) : _iconColor,
           ),
           labelText: widget.labelText,
-          labelStyle: TextStyle(color: Colors.grey), // Warna default label
+          labelStyle: TextStyle(color: Colors.grey),
           floatingLabelStyle: TextStyle(
             color: widget.isEdit ? const Color(0xFF0077B6) : Colors.grey,
-          ), // Warna label saat floating
+          ),
           filled: true,
           fillColor: widget.isEdit ? const Color(0xFFCAF0F8) : Colors.white,
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16.0),
+            borderRadius: BorderRadius.circular(14.0),
             borderSide: BorderSide(
                 color: widget.isEdit ? const Color(0xFFCAF0F8) : Colors.grey),
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16.0),
+            borderRadius: BorderRadius.circular(14.0),
             borderSide: BorderSide(
                 color: widget.isEdit ? const Color(0xFFCAF0F8) : Colors.grey),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16.0),
+            borderRadius: BorderRadius.circular(14.0),
             borderSide: const BorderSide(color: Color(0xFF0077B6)),
           ),
         ),

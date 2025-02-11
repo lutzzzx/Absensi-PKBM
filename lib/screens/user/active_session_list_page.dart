@@ -160,211 +160,233 @@ class ActiveSessionListPage extends StatelessWidget {
     );
   }
 
-  @override
+  Future<String?> _getUserPackage() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user == null) return null;
+
+    DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+    return userDoc['package'] ?? 'Paket A'; // Default ke Paket A jika tidak ada data
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: StreamBuilder(
-        stream: FirebaseFirestore.instance.collection('sessions').snapshots(),
-        builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-          if (!snapshot.hasData) {
+      body: FutureBuilder<String?>(
+        future: _getUserPackage(),
+        builder: (context, packageSnapshot) {
+          if (!packageSnapshot.hasData) {
             return Center(child: CircularProgressIndicator());
           }
 
-          var sessions = snapshot.data!.docs.where((session) {
-            bool isActive = session['isActive'] ?? false;
-            bool isTimeRestricted = session['isTimeRestricted'] ?? false;
+          String? userPackage = packageSnapshot.data;
 
-            if (!isActive) return false;
+          return StreamBuilder(
+            stream: FirebaseFirestore.instance.collection('sessions').orderBy('createdAt', descending: true).snapshots(),
+            builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+              if (!snapshot.hasData) {
+                return Center(child: CircularProgressIndicator());
+              }
 
-            if (isTimeRestricted) {
-              DateTime now = DateTime.now();
-              DateTime sessionDate = DateTime.parse(session['date']);
+              var sessions = snapshot.data!.docs.where((session) {
+                bool isActive = session['isActive'] ?? false;
+                bool isTimeRestricted = session['isTimeRestricted'] ?? false;
+                String sessionPackage = session['package'] ?? 'Paket A';
 
-              TimeOfDay startTime = TimeOfDay(
-                hour: int.parse(session['startTime'].split(':')[0]),
-                minute: int.parse(session['startTime'].split(':')[1]),
-              );
-              TimeOfDay endTime = TimeOfDay(
-                hour: int.parse(session['endTime'].split(':')[0]),
-                minute: int.parse(session['endTime'].split(':')[1]),
-              );
+                // Filter berdasarkan paket pengguna
+                if (sessionPackage != userPackage) return false;
 
-              DateTime startDateTime = DateTime(
-                  sessionDate.year, sessionDate.month, sessionDate.day, startTime.hour, startTime.minute);
-              DateTime endDateTime = DateTime(
-                  sessionDate.year, sessionDate.month, sessionDate.day, endTime.hour, endTime.minute);
+                if (!isActive) return false;
 
-              return now.isAfter(startDateTime) && now.isBefore(endDateTime);
-            }
+                if (isTimeRestricted) {
+                  DateTime now = DateTime.now();
+                  DateTime sessionDate = DateTime.parse(session['date']);
 
-            return true;
-          }).toList();
+                  TimeOfDay startTime = TimeOfDay(
+                    hour: int.parse(session['startTime'].split(':')[0]),
+                    minute: int.parse(session['startTime'].split(':')[1]),
+                  );
+                  TimeOfDay endTime = TimeOfDay(
+                    hour: int.parse(session['endTime'].split(':')[0]),
+                    minute: int.parse(session['endTime'].split(':')[1]),
+                  );
 
-          return Column(
-            children: [
-              // Tombol Refresh
-              Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: ElevatedButton.icon(
-                  onPressed: () => _refreshData(context),
-                  icon: Icon(Icons.refresh),
-                  label: Text('Refresh Data'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue[50],
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 0,
-                    minimumSize: Size(double.infinity, 48), // Full width
-                  ),
-                ),
-              ),
-              // Keterangan jika tidak ada data
-              if (sessions.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Center(
-                    child: Text(
-                      'Tidak ada sesi aktif saat ini.',
-                      style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-                    ),
-                  ),
-                ),
-              // ListView untuk menampilkan sesi
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                  child: ListView(
-                    children: sessions.map((session) {
-                      bool hasTime = session['startTime'] != null && session['endTime'] != null;
-                      bool isUserPresent = _isUserPresent(session);
+                  DateTime startDateTime = DateTime(
+                      sessionDate.year, sessionDate.month, sessionDate.day, startTime.hour, startTime.minute);
+                  DateTime endDateTime = DateTime(
+                      sessionDate.year, sessionDate.month, sessionDate.day, endTime.hour, endTime.minute);
 
-                      return Container(
-                        margin: EdgeInsets.symmetric(vertical: 10),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: isUserPresent ? Colors.white : Colors.white, // Warna border sesuai status kehadiran
-                            width: 0,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.grey.withOpacity(0.2),
-                              spreadRadius: 3,
-                              blurRadius: 8,
-                              offset: Offset(0, 3),
-                            ),
-                          ],
+                  return now.isAfter(startDateTime) && now.isBefore(endDateTime);
+                }
+
+                return true;
+              }).toList();
+
+              return Column(
+                children: [
+                  // Tombol Refresh
+                  Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: ElevatedButton.icon(
+                      onPressed: () => _refreshData(context),
+                      icon: Icon(Icons.refresh),
+                      label: Text('Refresh Data'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue[50],
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Status Hadir atau Belum Hadir di atas judul
-                              Container(
-                                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: isUserPresent ? Colors.green[50] : Colors.red[50],
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      isUserPresent ? Icons.check_circle : Icons.cancel,
-                                      color: isUserPresent ? Colors.green : Colors.red,
-                                      size: 16,
-                                    ),
-                                    SizedBox(width: 4),
-                                    Text(
-                                      isUserPresent ? 'Sudah Hadir' : 'Belum Hadir',
-                                      style: TextStyle(
-                                        color: isUserPresent ? Colors.green : Colors.red,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                        elevation: 0,
+                        minimumSize: Size(double.infinity, 48), // Full width
+                      ),
+                    ),
+                  ),
+                  // Keterangan jika tidak ada data
+                  if (sessions.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Center(
+                        child: Text(
+                          'Tidak ada sesi aktif untuk paket Anda saat ini.',
+                          style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                        ),
+                      ),
+                    ),
+                  // ListView untuk menampilkan sesi
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                      child: ListView(
+                        children: sessions.map((session) {
+                          bool hasTime = session['startTime'] != null && session['endTime'] != null;
+                          bool isUserPresent = _isUserPresent(session);
+
+                          return Container(
+                            margin: EdgeInsets.symmetric(vertical: 10),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: isUserPresent ? Colors.white : Colors.white, // Warna border sesuai status kehadiran
+                                width: 0,
                               ),
-                              SizedBox(height: 12),
-                              // Judul sesi
-                              Text(
-                                session['title'],
-                                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                              ),
-                              SizedBox(height: 8),
-                              // Tanggal sesi
-                              Row(
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.grey.withOpacity(0.2),
+                                  spreadRadius: 3,
+                                  blurRadius: 8,
+                                  offset: Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    DateFormat('EEEE, dd MMMM yyyy', 'id_ID').format(DateTime.parse(session['date'])),
-                                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                                  // Status Hadir atau Belum Hadir di atas judul
+                                  Container(
+                                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: isUserPresent ? Colors.green[50] : Colors.red[50],
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          isUserPresent ? Icons.check_circle : Icons.cancel,
+                                          color: isUserPresent ? Colors.green : Colors.red,
+                                          size: 16,
+                                        ),
+                                        SizedBox(width: 4),
+                                        Text(
+                                          isUserPresent ? 'Sudah Hadir' : 'Belum Hadir',
+                                          style: TextStyle(
+                                            color: isUserPresent ? Colors.green : Colors.red,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ],
-                              ),
-                              // Waktu sesi (jika ada)
-                              if (hasTime)
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 4.0),
-                                  child: Row(
+                                  SizedBox(height: 12),
+                                  // Judul sesi
+                                  Text(
+                                    session['title'],
+                                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                  ),
+                                  SizedBox(height: 8),
+                                  // Tanggal sesi
+                                  Row(
                                     children: [
-                                      Icon(Icons.access_time, size: 16, color: Colors.grey[600]),
+                                      Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
                                       SizedBox(width: 8),
                                       Text(
-                                        '${session['startTime']} - ${session['endTime']}',
+                                        DateFormat('EEEE, dd MMMM yyyy', 'id_ID').format(DateTime.parse(session['date'])),
                                         style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                                       ),
                                     ],
                                   ),
-                                ),
-                              SizedBox(height: 12),
-                              // Tombol Konfirmasi Kehadiran atau Batalkan Kehadiran
-                              ElevatedButton(
-                                onPressed: () {
-                                  User? user = FirebaseAuth.instance.currentUser;
-                                  if (user == null) return;
+                                  // Waktu sesi (jika ada)
+                                  if (hasTime)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 4.0),
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.access_time, size: 16, color: Colors.grey[600]),
+                                          SizedBox(width: 8),
+                                          Text(
+                                            '${session['startTime']} - ${session['endTime']}',
+                                            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  SizedBox(height: 12),
+                                  // Tombol Konfirmasi Kehadiran atau Batalkan Kehadiran
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      User? user = FirebaseAuth.instance.currentUser;
+                                      if (user == null) return;
 
-                                  List attendees = session['attendees'] ?? [];
-                                  bool isPresent = attendees.any((attendee) => attendee['email'] == user.email);
+                                      List attendees = session['attendees'] ?? [];
+                                      bool isPresent = attendees.any((attendee) => attendee['email'] == user.email);
 
-                                  if (isPresent) {
-                                    _showCancelConfirmationDialog(context, session.id); // Tampilkan dialog konfirmasi
-                                  } else if (session['isPasswordEnabled'] ?? false) {
-                                    _showPasswordDialog(context, session.id, isPresent);
-                                  } else {
-                                    _checkIn(context, session.id, isPresent);
-                                  }
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: isUserPresent ? Colors.red[50] : Colors.green[50],
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                      if (isPresent) {
+                                        _showCancelConfirmationDialog(context, session.id); // Tampilkan dialog konfirmasi
+                                      } else if (session['isPasswordEnabled'] ?? false) {
+                                        _showPasswordDialog(context, session.id, isPresent);
+                                      } else {
+                                        _checkIn(context, session.id, isPresent);
+                                      }
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: isUserPresent ? Colors.red[50] : Colors.green[50],
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      elevation: 0,
+                                      minimumSize: Size(double.infinity, 48), // Full width
+                                    ),
+                                    child: Text(
+                                      isUserPresent ? 'Batalkan Kehadiran' : 'Konfirmasi Kehadiran',
+                                      style: TextStyle(
+                                        color: isUserPresent ? Colors.red : Colors.green,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                   ),
-                                  elevation: 0,
-                                  minimumSize: Size(double.infinity, 48), // Full width
-                                ),
-                                child: Text(
-                                  isUserPresent ? 'Batalkan Kehadiran' : 'Konfirmasi Kehadiran',
-                                  style: TextStyle(
-                                    color: isUserPresent ? Colors.red : Colors.green,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
+                                ],
                               ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }).toList(),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            ],
+                ],
+              );
+            },
           );
         },
       ),

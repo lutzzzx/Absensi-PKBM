@@ -32,7 +32,6 @@ class _MainScreenState extends State<MainScreen> {
   static List<Widget> _adminPages = <Widget>[
     SessionListPage(),
     UserManagementPage(),
-    const Text('Laporan'),
     ProfileScreen(),
   ];
 
@@ -47,7 +46,7 @@ class _MainScreenState extends State<MainScreen> {
   static const List<String> _adminPageTitles = [
     'Dashboard Admin',
     'Manajemen Pengguna',
-    'Manajemen Obat',
+    'Profil Saya',
     'Laporan Kunjungan',
     'Pengaturan Admin',
   ];
@@ -184,10 +183,6 @@ class _MainScreenState extends State<MainScreen> {
           BottomNavigationBarItem(
             icon: Icon(Icons.people),
             label: 'Pengguna',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.bar_chart),
-            label: 'Laporan',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.settings),

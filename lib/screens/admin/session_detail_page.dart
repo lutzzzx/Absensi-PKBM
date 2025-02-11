@@ -2,6 +2,7 @@ import 'package:absensi_pkbm/screens/admin/manual_attendance_page.dart';
 import 'package:absensi_pkbm/screens/widgets/build_input_card.dart';
 import 'package:absensi_pkbm/screens/widgets/build_switch_tile.dart';
 import 'package:absensi_pkbm/screens/widgets/custom_button.dart';
+import 'package:absensi_pkbm/screens/widgets/custom_fab.dart';
 import 'package:absensi_pkbm/screens/widgets/custom_text_form_field.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -28,6 +29,8 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
   bool _isTimeRestricted = false;
   bool _isActive = true;
   bool _isPasswordEnabled = false; // Status apakah password diaktifkan
+  String? _selectedPackage;
+  final List<String> _packages = ['Paket A', 'Paket B', 'Paket C', 'Tutor'];
 
   @override
   void initState() {
@@ -52,8 +55,9 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
         _startTimeController.text = _startTime != null ? _formatTime(_startTime!) : '';
         _endTime = data['endTime'] != null ? _parseTimeOfDay(data['endTime']) : null;
         _endTimeController.text = _endTime != null ? _formatTime(_endTime!) : '';
-        _isPasswordEnabled = data['isPasswordEnabled'] ?? false; // Muat status password
-        _passwordController.text = data['password'] ?? ''; // Muat password
+        _isPasswordEnabled = data['isPasswordEnabled'] ?? false;
+        _passwordController.text = data['password'] ?? '';
+        _selectedPackage = data['package'] ?? 'Paket A'; // Muat data paket
       });
     }
   }
@@ -101,7 +105,7 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
   }
 
   Future<void> _updateSession() async {
-    if (_titleController.text.isEmpty || _selectedDate == null) {
+    if (_titleController.text.isEmpty || _selectedDate == null || _selectedPackage == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Lengkapi semua isian')),
       );
@@ -122,13 +126,15 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
       'endTime': _isTimeRestricted ? _formatTime(_endTime!) : null,
       'isTimeRestricted': _isTimeRestricted,
       'isActive': _isActive,
-      'isPasswordEnabled': _isPasswordEnabled, // Simpan status password
-      'password': _isPasswordEnabled ? _passwordController.text : null, // Simpan password jika diaktifkan
+      'isPasswordEnabled': _isPasswordEnabled,
+      'password': _isPasswordEnabled ? _passwordController.text : null,
+      'package': _selectedPackage, // Simpan pilihan paket
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Sesi berhasil diperbarui')),
     );
+    Navigator.pop(context);
   }
 
   @override
@@ -174,6 +180,32 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
                         labelText: 'Tanggal',
                         readOnly: true,
                         onTap: _pickDate,
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 16),
+                BuildInputCard(
+                  child: Column(
+                    children: [
+                      DropdownButtonFormField<String>(
+                        decoration: InputDecoration(
+                          labelText: 'Pilih Paket PKBM',
+                          icon: Icon(Icons.list, color: Colors.blue),
+                        ),
+                        value: _selectedPackage,
+                        items: _packages.map((String package) {
+                          return DropdownMenuItem<String>(
+                            value: package,
+                            child: Text(package),
+                          );
+                        }).toList(),
+                        onChanged: (String? newValue) {
+                          setState(() {
+                            _selectedPackage = newValue;
+                          });
+                        },
+                        validator: (value) => value == null ? 'Pilih paket' : null,
                       ),
                     ],
                   ),
@@ -255,14 +287,6 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
                   ),
                 ),
                 SizedBox(height: 20),
-                // Tombol Update Sesi
-                Center(
-                  child: CustomButton(
-                    text: 'Update Sesi',
-                    onPressed: _updateSession,
-                  ),
-                ),
-                SizedBox(height: 20),
 
                 // Card untuk Daftar Peserta
                 BuildInputCard(
@@ -309,6 +333,12 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
           );
         },
       ),
+      floatingActionButton: CustomFAB(
+        onPressed: _updateSession,
+        icon: Icons.save,
+        text: 'Update Sesi',
+      ),
+
     );
   }
 }

@@ -19,6 +19,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _auth = FirebaseAuth.instance;
   final _firestore = FirebaseFirestore.instance;
   bool _acceptTerms = false;
+  String? _selectedPackage;
+  final List<String> _packageOptions = ['Paket A', 'Paket B', 'Paket C', 'Tutor'];
 
   void _registerWithEmailPassword() async {
     if (_passwordController.text != _confirmPasswordController.text) {
@@ -35,34 +37,36 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
+    if (_selectedPackage == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Silakan pilih paket PKBM')),
+      );
+      return;
+    }
+
     try {
-      // Step 1: Create user in Firebase Authentication
       UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
         email: _emailController.text,
         password: _passwordController.text,
       );
 
-      // Step 2: Send email verification
       await userCredential.user?.sendEmailVerification();
 
-      // Step 3: Navigate to waiting screen
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => WaitingScreen()),
       );
 
-      // Step 4: Wait for email verification
       await _waitForEmailVerification(userCredential.user!);
 
-      // Step 5: Save user data to Firestore after email is verified
       await _firestore.collection('users').doc(userCredential.user!.uid).set({
         'fullName': _fullNameController.text,
         'email': _emailController.text,
         'role': 'user',
+        'package': _selectedPackage,
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      // Step 6: Navigate to the appropriate screen after successful registration
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => LoginScreen()),
@@ -75,7 +79,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _waitForEmailVerification(User user) async {
-    // Check every 5 seconds if the email is verified
     while (!user.emailVerified) {
       await Future.delayed(Duration(seconds: 5));
       await user.reload();
@@ -148,6 +151,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             controller: _confirmPasswordController,
                             labelText: 'Konfirmasi Kata Sandi',
                             obscureText: true,
+                          ),
+                          CustomTextFormField(
+                            icon: Icon(Icons.school), // Icon untuk prefix
+                            controller: TextEditingController(), // Controller untuk menyimpan nilai
+                            labelText: 'Pilih Paket PKBM', // Label untuk form field
+                            dropdownItems: _packageOptions, // Daftar item dropdown
+                            initialDropdownValue: _selectedPackage, // Nilai awal dropdown
+                            onChanged: (String? newValue) {
+                              setState(() {
+                                _selectedPackage = newValue; // Update nilai yang dipilih
+                              });
+                            },
                           ),
                           SizedBox(height: 10),
                           CustomButton(text: 'Daftar', onPressed: _registerWithEmailPassword),

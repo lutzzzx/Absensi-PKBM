@@ -41,7 +41,7 @@ class UserManagementPage extends StatelessWidget {
               final user = users[index].data() as Map<String, dynamic>;
               return ListTile(
                 title: Text(user['fullName'] ?? 'Nama tidak tersedia'),
-                subtitle: Text(user['email'] ?? 'Email tidak tersedia'),
+                subtitle: Text('${user['email'] ?? 'Email tidak tersedia'} - ${user['package'] ?? 'X'}'),
                 trailing: PopupMenuButton<String>(
                   onSelected: (value) {
                     if (value == 'reset_password') {

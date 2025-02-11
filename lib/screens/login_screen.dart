@@ -32,6 +32,26 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  void _resetPassword() async {
+    if (_emailController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Silakan masukkan email Anda')),
+      );
+      return;
+    }
+
+    try {
+      await _auth.sendPasswordResetEmail(email: _emailController.text);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Email reset kata sandi telah dikirim ke ${_emailController.text}')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal mengirim email reset kata sandi: ${e.toString()}')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -112,6 +132,13 @@ class _LoginScreenState extends State<LoginScreen> {
                             },
                             child: Text(
                               'Belum punya akun? Daftar di sini',
+                              style: TextStyle(color: Colors.blue.shade700),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: _resetPassword,
+                            child: Text(
+                              'Lupa Kata Sandi?',
                               style: TextStyle(color: Colors.blue.shade700),
                             ),
                           ),
