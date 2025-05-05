@@ -45,7 +45,7 @@ class _CustomTextFormFieldState extends State<CustomTextFormField> {
     _focusNode = FocusNode();
     _focusNode.addListener(() {
       setState(() {
-        _iconColor = _focusNode.hasFocus ? const Color(0xFF0077B6) : Colors.grey;
+        _iconColor = _focusNode.hasFocus ? Colors.blue : Colors.grey;
       });
     });
 
@@ -87,28 +87,28 @@ class _CustomTextFormFieldState extends State<CustomTextFormField> {
           contentPadding: const EdgeInsets.symmetric(vertical: 14.0, horizontal: 12.0), // Atur padding di sini
           prefixIcon: Icon(
             widget.icon.icon,
-            color: widget.isEdit ? const Color(0xFF0077B6) : _iconColor,
+            color: widget.isEdit ? Colors.blue : _iconColor,
           ),
           labelText: widget.labelText,
           labelStyle: TextStyle(color: Colors.grey),
           floatingLabelStyle: TextStyle(
-            color: widget.isEdit ? const Color(0xFF0077B6) : Colors.grey,
+            color: widget.isEdit ? Colors.blue : Colors.grey,
           ),
           filled: true,
-          fillColor: widget.isEdit ? const Color(0xFFCAF0F8) : Colors.white,
+          fillColor: widget.isEdit ? Colors.blue : Colors.white,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14.0),
             borderSide: BorderSide(
-                color: widget.isEdit ? const Color(0xFFCAF0F8) : Colors.grey),
+                color: widget.isEdit ? Colors.blue : Colors.grey),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14.0),
             borderSide: BorderSide(
-                color: widget.isEdit ? const Color(0xFFCAF0F8) : Colors.grey),
+                color: widget.isEdit ? Colors.blue : Colors.grey),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14.0),
-            borderSide: const BorderSide(color: Color(0xFF0077B6)),
+            borderSide: const BorderSide(color: Colors.blue),
           ),
         ),
         dropdownColor: Colors.white,
@@ -125,28 +125,28 @@ class _CustomTextFormFieldState extends State<CustomTextFormField> {
           contentPadding: const EdgeInsets.symmetric(vertical: 14.0, horizontal: 12.0), // Atur padding di sini
           prefixIcon: Icon(
             widget.icon.icon,
-            color: widget.isEdit ? const Color(0xFF03045E) : _iconColor,
+            color: widget.isEdit ? Colors.blue : _iconColor,
           ),
           labelText: widget.labelText,
           labelStyle: TextStyle(color: Colors.grey),
           floatingLabelStyle: TextStyle(
-            color: widget.isEdit ? const Color(0xFF0077B6) : Colors.grey,
+            color: widget.isEdit ? Colors.blue : Colors.grey,
           ),
           filled: true,
-          fillColor: widget.isEdit ? const Color(0xFFCAF0F8) : Colors.white,
+          fillColor: widget.isEdit ? Colors.blue : Colors.white,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14.0),
             borderSide: BorderSide(
-                color: widget.isEdit ? const Color(0xFFCAF0F8) : Colors.grey),
+                color: widget.isEdit ? Colors.blue : Colors.grey),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14.0),
             borderSide: BorderSide(
-                color: widget.isEdit ? const Color(0xFFCAF0F8) : Colors.grey),
+                color: widget.isEdit ? Colors.blue : Colors.grey),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14.0),
-            borderSide: const BorderSide(color: Color(0xFF0077B6)),
+            borderSide: const BorderSide(color: Colors.blue),
           ),
         ),
         keyboardType: widget.keyboardType,

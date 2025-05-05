@@ -60,6 +60,7 @@ class UserManagementPage extends StatelessWidget {
           );
         },
       ),
+      /*
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           Navigator.push(
@@ -69,7 +70,7 @@ class UserManagementPage extends StatelessWidget {
         },
         child: Icon(Icons.add),
         tooltip: 'Tambah Pengguna',
-      ),
+      ),*/
     );
   }
 }

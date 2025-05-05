@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:absensi_pkbm/screens/admin/manual_attendance_page.dart';
 import 'package:absensi_pkbm/screens/widgets/build_input_card.dart';
 import 'package:absensi_pkbm/screens/widgets/build_switch_tile.dart';
@@ -5,8 +7,11 @@ import 'package:absensi_pkbm/screens/widgets/custom_button.dart';
 import 'package:absensi_pkbm/screens/widgets/custom_fab.dart';
 import 'package:absensi_pkbm/screens/widgets/custom_text_form_field.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:csv/csv.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 class SessionDetailPage extends StatefulWidget {
   final String sessionId;
@@ -136,6 +141,90 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
     );
     Navigator.pop(context);
   }
+
+
+  Future<void> _exportAndShareCSV() async {
+    try {
+      // Ambil data peserta dari Firestore
+      DocumentSnapshot sessionDoc = await FirebaseFirestore.instance
+          .collection('sessions')
+          .doc(widget.sessionId)
+          .get();
+
+      if (!sessionDoc.exists) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Data sesi tidak ditemukan')),
+        );
+        return;
+      }
+
+      List<dynamic> attendees = sessionDoc['attendees'] ?? [];
+      String sessionTitle = sessionDoc['title'] ?? 'Sesi_Tanpa_Judul';
+      var sessionDateRaw = sessionDoc['date'] ?? 'Tanpa_Tanggal';
+
+      // Konversi sessionDate ke format YYYY-MM-DD
+      String sessionDate = 'Tanpa_Tanggal';
+      if (sessionDateRaw is Timestamp) {
+        sessionDate = DateFormat('yyyy-MM-dd').format(sessionDateRaw.toDate());
+      } else if (sessionDateRaw is String) {
+        try {
+          sessionDate = DateFormat('yyyy-MM-dd').format(DateTime.parse(sessionDateRaw));
+        } catch (e) {
+          sessionDate = 'Format_Tidak_Valid';
+        }
+      }
+
+      if (attendees.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Tidak ada peserta hadir')),
+        );
+        return;
+      }
+
+      // Buat data CSV
+      List<List<String>> csvData = [
+        ['Nama', 'Email', 'Waktu'], // Header CSV
+        ...attendees.map((attendee) {
+          String formattedTime = 'Tidak tersedia';
+          var timestamp = attendee['timestamp'];
+
+          if (timestamp is Timestamp) {
+            formattedTime = DateFormat('yyyy-MM-dd HH:mm:ss').format(timestamp.toDate());
+          } else if (timestamp is String) {
+            try {
+              formattedTime = DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.parse(timestamp));
+            } catch (e) {
+              formattedTime = 'Format tidak valid';
+            }
+          }
+
+          return [
+            attendee['name'] ?? 'Tidak diketahui',
+            attendee['email'] ?? 'Tidak diketahui',
+            formattedTime,
+          ];
+        }),
+      ];
+
+      // Konversi ke format CSV
+      String csvString = const ListToCsvConverter().convert(csvData);
+
+      // Simpan file di direktori sementara
+      final directory = await getTemporaryDirectory();
+      final filePath = '${directory.path}/daftar_hadir_${sessionTitle}_$sessionDate.csv';
+      final file = File(filePath);
+      await file.writeAsString(csvString);
+
+      // Bagikan file
+      await Share.shareXFiles([XFile(filePath)], text: 'Daftar Hadir Sesi $sessionTitle ($sessionDate)');
+
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal mengekspor data: $e')),
+      );
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {

@@ -1,11 +1,17 @@
+import 'dart:io';
+
 import 'package:absensi_pkbm/screens/admin/edit_session_page.dart';
 import 'package:absensi_pkbm/screens/admin/add_session_page.dart';
 import 'package:absensi_pkbm/screens/admin/session_detail_page.dart';
 import 'package:absensi_pkbm/screens/widgets/confirmation_dialog.dart';
+import 'package:absensi_pkbm/screens/widgets/custom_button.dart';
 import 'package:absensi_pkbm/screens/widgets/custom_fab.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:csv/csv.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 class SessionListPage extends StatefulWidget {
   @override
@@ -84,6 +90,85 @@ class _SessionListPageState extends State<SessionListPage> {
     return true;
   }
 
+  Future<void> _exportAndShareCSV(String sessionId, String sessionTitle, String sessionDateRaw) async {
+    try {
+      // Ambil data peserta dari Firestore
+      DocumentSnapshot sessionDoc = await FirebaseFirestore.instance
+          .collection('sessions')
+          .doc(sessionId)
+          .get();
+
+      if (!sessionDoc.exists) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Data sesi tidak ditemukan')),
+        );
+        return;
+      }
+
+      List<dynamic> attendees = sessionDoc['attendees'] ?? [];
+
+      // Konversi sessionDate ke format YYYY-MM-DD
+      String sessionDate = 'Tanpa_Tanggal';
+      if (sessionDateRaw is Timestamp) {
+      } else if (sessionDateRaw is String) {
+        try {
+          sessionDate = DateFormat('yyyy-MM-dd').format(DateTime.parse(sessionDateRaw));
+        } catch (e) {
+          sessionDate = 'Format_Tidak_Valid';
+        }
+      }
+
+      if (attendees.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Tidak ada peserta hadir')),
+        );
+        return;
+      }
+
+      // Buat data CSV
+      List<List<String>> csvData = [
+        ['Nama', 'Email', 'Waktu'], // Header CSV
+        ...attendees.map((attendee) {
+          String formattedTime = 'Tidak tersedia';
+          var timestamp = attendee['timestamp'];
+
+          if (timestamp is Timestamp) {
+            formattedTime = DateFormat('yyyy-MM-dd HH:mm:ss').format(timestamp.toDate());
+          } else if (timestamp is String) {
+            try {
+              formattedTime = DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.parse(timestamp));
+            } catch (e) {
+              formattedTime = 'Format tidak valid';
+            }
+          }
+
+          return [
+            attendee['name'] ?? 'Tidak diketahui',
+            attendee['email'] ?? 'Tidak diketahui',
+            formattedTime,
+          ];
+        }),
+      ];
+
+      // Konversi ke format CSV
+      String csvString = const ListToCsvConverter().convert(csvData);
+
+      // Simpan file di direktori sementara
+      final directory = await getTemporaryDirectory();
+      final filePath = '${directory.path}/daftar_hadir_${sessionTitle}_$sessionDate.csv';
+      final file = File(filePath);
+      await file.writeAsString(csvString);
+
+      // Bagikan file
+      await Share.shareXFiles([XFile(filePath)], text: 'Daftar Hadir Sesi $sessionTitle ($sessionDate)');
+
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal mengekspor data: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -148,95 +233,111 @@ class _SessionListPageState extends State<SessionListPage> {
           // Package Filter Buttons
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      _selectedPackage = 'All';
-                    });
-                  },
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: Size(50, 36), // Ukuran lebih kecil
-                    backgroundColor: _selectedPackage == 'All' ? Colors.blue : Colors.grey[300],
-                    elevation: 0, // Menghapus shadow
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12), // Membuat rounded lebih besar
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal, // Mengaktifkan scroll horizontal
+              child: Row(
+                children: [
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        _selectedPackage = 'All';
+                      });
+                    },
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: Size(50, 36),
+                      backgroundColor: _selectedPackage == 'All' ? Colors.blue : Colors.grey[300],
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      'Semua',
+                      style: TextStyle(color: _selectedPackage == 'All' ? Colors.white : Colors.black),
                     ),
                   ),
-                  child: Text('Semua', style: TextStyle(color: _selectedPackage == 'All' ? Colors.white : Colors.black)),
-                ),
-                SizedBox(width: 5),
-                ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      _selectedPackage = 'Paket A';
-                    });
-                  },
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: Size(30, 36),
-                    backgroundColor: _selectedPackage == 'Paket A' ? Colors.blue : Colors.grey[300],
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                  SizedBox(width: 5),
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        _selectedPackage = 'Paket A';
+                      });
+                    },
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: Size(30, 36),
+                      backgroundColor: _selectedPackage == 'Paket A' ? Colors.blue : Colors.grey[300],
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      'A',
+                      style: TextStyle(color: _selectedPackage == 'Paket A' ? Colors.white : Colors.black),
                     ),
                   ),
-                  child: Text('A', style: TextStyle(color: _selectedPackage == 'Paket A' ? Colors.white : Colors.black)),
-                ),
-                SizedBox(width: 5),
-                ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      _selectedPackage = 'Paket B';
-                    });
-                  },
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: Size(30, 36),
-                    backgroundColor: _selectedPackage == 'Paket B' ? Colors.blue : Colors.grey[300],
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                  SizedBox(width: 5),
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        _selectedPackage = 'Paket B';
+                      });
+                    },
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: Size(30, 36),
+                      backgroundColor: _selectedPackage == 'Paket B' ? Colors.blue : Colors.grey[300],
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      'B',
+                      style: TextStyle(color: _selectedPackage == 'Paket B' ? Colors.white : Colors.black),
                     ),
                   ),
-                  child: Text('B', style: TextStyle(color: _selectedPackage == 'Paket B' ? Colors.white : Colors.black)),
-                ),
-                SizedBox(width: 5),
-                ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      _selectedPackage = 'Paket C';
-                    });
-                  },
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: Size(30, 36),
-                    backgroundColor: _selectedPackage == 'Paket C' ? Colors.blue : Colors.grey[300],
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                  SizedBox(width: 5),
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        _selectedPackage = 'Paket C';
+                      });
+                    },
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: Size(30, 36),
+                      backgroundColor: _selectedPackage == 'Paket C' ? Colors.blue : Colors.grey[300],
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      'C',
+                      style: TextStyle(color: _selectedPackage == 'Paket C' ? Colors.white : Colors.black),
                     ),
                   ),
-                  child: Text('C', style: TextStyle(color: _selectedPackage == 'Paket C' ? Colors.white : Colors.black)),
-                ),
-                SizedBox(width: 5),
-                ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      _selectedPackage = 'Tutor';
-                    });
-                  },
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: Size(30, 36),
-                    backgroundColor: _selectedPackage == 'Tutor' ? Colors.blue : Colors.grey[300],
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                  SizedBox(width: 5),
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        _selectedPackage = 'Tutor';
+                      });
+                    },
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: Size(30, 36),
+                      backgroundColor: _selectedPackage == 'Tutor' ? Colors.blue : Colors.grey[300],
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      'Tutor',
+                      style: TextStyle(color: _selectedPackage == 'Tutor' ? Colors.white : Colors.black),
                     ),
                   ),
-                  child: Text('Tutor', style: TextStyle(color: _selectedPackage == 'Tutor' ? Colors.white : Colors.black)),
-                ),
-              ],
-
+                ],
+              ),
             ),
           ),
           Expanded(
@@ -433,6 +534,11 @@ class _SessionListPageState extends State<SessionListPage> {
                                     ),
                                   ],
                                 ),
+                                SizedBox(height: 12),
+                                CustomButton(
+                                    text: 'Ekspor dan Bagikan Laporan',
+                                    isOutline: true,
+                                    onPressed: () => _exportAndShareCSV(doc.id, doc['title'], doc['date']))
                               ],
                             ),
                           ),

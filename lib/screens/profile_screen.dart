@@ -308,24 +308,28 @@ class ProfileScreen extends StatelessWidget {
                               text: 'Ubah Email',
                               onPressed: () => _updateEmail(context),
                               isFullWidth: true,
+                              isOutline: true,
                             ),
                             SizedBox(height: 16),
                             CustomButton(
                               text: 'Ubah Nama',
                               onPressed: () => _updateFullName(context),
                               isFullWidth: true,
+                              isOutline: true,
                             ),
                             SizedBox(height: 16),
                             CustomButton(
                               text: 'Ubah Paket',
                               onPressed: () => _updatePackage(context),
                               isFullWidth: true,
+                              isOutline: true,
                             ),
                             SizedBox(height: 16),
                             CustomButton(
                               text: 'Reset Kata Sandi',
                               onPressed: () => _resetPassword(context),
                               isFullWidth: true,
+                              isOutline: true,
                             ),
                             SizedBox(height: 16),
                             CustomButton(

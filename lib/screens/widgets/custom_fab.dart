@@ -16,7 +16,7 @@ class CustomFAB extends StatelessWidget {
   Widget build(BuildContext context) {
     return FloatingActionButton.extended(
       onPressed: onPressed,
-      backgroundColor: Colors.blueAccent,
+      backgroundColor: Colors.blue,
       icon: Icon(icon, color: Colors.white),
       label: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0), // Atur padding
